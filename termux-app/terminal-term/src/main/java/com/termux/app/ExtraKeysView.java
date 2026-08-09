@@ -315,7 +315,7 @@ public final class ExtraKeysView extends GridLayout {
      * "−" will input a "−" character
      * "-_-" will input the string "-_-"
      */
-    void reload(String[][] buttons, CharDisplayMap charDisplayMap) {
+    public void reload(String[][] buttons, CharDisplayMap charDisplayMap) {
         for(SpecialButtonState state : specialButtons.values())
             state.button = null;
             

@@ -12,6 +12,7 @@ import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.termux.terminal.TerminalSession
+import com.termux.app.ExtraKeysView
 import com.termux.view.TerminalView
 import com.termux.view.TerminalViewClient
 import tech.ula.utils.AndroidShellLauncher
@@ -75,12 +76,10 @@ class AndroidShellActivity : AppCompatActivity(), TerminalSession.SessionChanged
             override fun onLongPress(event: MotionEvent?): Boolean = false
         })
 
-        findViewById<android.view.View>(R.id.key_esc).setOnClickListener { session?.write("\u001b") }
-        findViewById<android.view.View>(R.id.key_tab).setOnClickListener { session?.write("\t") }
-        findViewById<android.view.View>(R.id.key_left).setOnClickListener { session?.write("\u001b[D") }
-        findViewById<android.view.View>(R.id.key_up).setOnClickListener { session?.write("\u001b[A") }
-        findViewById<android.view.View>(R.id.key_down).setOnClickListener { session?.write("\u001b[B") }
-        findViewById<android.view.View>(R.id.key_right).setOnClickListener { session?.write("\u001b[C") }
+        findViewById<ExtraKeysView>(R.id.local_extra_keys).reload(arrayOf(
+                arrayOf("ESC", "/", "-", "HOME", "UP", "END", "PGUP"),
+                arrayOf("TAB", "CTRL", "ALT", "LEFT", "DOWN", "RIGHT", "PGDN")
+        ), ExtraKeysView.defaultCharDisplay)
         startShell()
     }
 
