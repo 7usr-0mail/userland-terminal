@@ -2,7 +2,6 @@ package tech.ula
 
 import android.app.Application
 import android.os.Build
-import android.os.Environment
 import java.io.File
 import java.io.PrintWriter
 import java.io.StringWriter
@@ -69,8 +68,6 @@ class UlaApplication : Application() {
 
         // Write everywhere plausible; the first location that works is enough.
         val targets = listOfNotNull(
-                File(Environment.getExternalStoragePublicDirectory(
-                        Environment.DIRECTORY_DOWNLOADS), "userland-crash.txt"),
                 getExternalFilesDir(null)?.let { File(it, "userland-crash.txt") },
                 File(filesDir, "userland-crash.txt")
         )
