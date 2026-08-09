@@ -151,7 +151,9 @@ class AndroidShellLauncher(
             env += "OS_VERSION=${System.getProperty("os.version") ?: ""}"
             val session = TerminalSession(ulaFiles.busybox.absolutePath, rootfs.absolutePath,
                     arrayOf("busybox", "sh", File(ulaFiles.supportDir, "execInProot.sh").absolutePath,
-                            "/bin/su", "-", username, "-s", "/bin/bash", "-c", "exec /bin/bash -i"), env.toTypedArray(), callback)
+                            "/bin/sh", "-c", "export HOME=/home/" + username +
+                            " USER=" + username + " LOGNAME=" + username +
+                            "; exec /bin/bash --rcfile /home/" + username + "/.bashrc -i"), env.toTypedArray(), callback)
             session.updateSize(80, 24)
             session
         } catch (err: Exception) {
