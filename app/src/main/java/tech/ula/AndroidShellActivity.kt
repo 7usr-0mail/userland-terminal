@@ -127,6 +127,8 @@ class AndroidShellActivity : AppCompatActivity(), TerminalSession.SessionChanged
     }
 
     override fun onSessionFinished(finishedSession: TerminalSession) {
+        if (localFilesystemId >= 0) LocalSessionTrace.append(this,
+                "LOCAL session ended exit=${finishedSession.exitStatus}")
         runOnUiThread {
             Toast.makeText(this, R.string.android_shell_exited, Toast.LENGTH_SHORT).show()
             finish()
