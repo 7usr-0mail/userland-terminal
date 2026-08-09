@@ -32,6 +32,8 @@ class AndroidShellActivity : AppCompatActivity(), TerminalSession.SessionChanged
     private var session: TerminalSession? = null
     private val localFilesystemId by lazy { intent.getLongExtra("localFilesystemId", -1) }
     private val localUsername by lazy { intent.getStringExtra("localUsername") ?: "user" }
+    private var localStartedAt = 0L
+    private val localTempTrace by lazy { java.io.File(filesDir, "direct-session-$localFilesystemId.temp") }
 
     private val ulaFiles by lazy { UlaFiles(this, this.applicationInfo.nativeLibraryDir) }
     private val launcher by lazy { AndroidShellLauncher(this, ulaFiles) }
@@ -90,6 +92,10 @@ class AndroidShellActivity : AppCompatActivity(), TerminalSession.SessionChanged
             return
         }
         session = result
+        if (localFilesystemId >= 0) {
+            localStartedAt = System.currentTimeMillis()
+            localTempTrace.writeText("[direct session capture started]\n")
+        }
         terminalView.attachSession(result)
         if (launcher.usingRoot) {
             Toast.makeText(this, R.string.android_shell_root_active, Toast.LENGTH_SHORT).show()
@@ -119,6 +125,9 @@ class AndroidShellActivity : AppCompatActivity(), TerminalSession.SessionChanged
 
     // TerminalSession.SessionChangedCallback
     override fun onTextChanged(changedSession: TerminalSession) {
+        if (localFilesystemId >= 0 && System.currentTimeMillis() - localStartedAt <= 10_000L) {
+            try { localTempTrace.writeText(changedSession.emulator.screen.transcriptText) } catch (_: Exception) {}
+        }
         terminalView.onScreenUpdated()
     }
 
@@ -127,8 +136,16 @@ class AndroidShellActivity : AppCompatActivity(), TerminalSession.SessionChanged
     }
 
     override fun onSessionFinished(finishedSession: TerminalSession) {
-        if (localFilesystemId >= 0) LocalSessionTrace.append(this,
-                "LOCAL session ended exit=${finishedSession.exitStatus}")
+        if (localFilesystemId >= 0) {
+            val elapsed = System.currentTimeMillis() - localStartedAt
+            try { localTempTrace.writeText(finishedSession.emulator.screen.transcriptText) } catch (_: Exception) {}
+            LocalSessionTrace.append(this, "LOCAL session ended exit=${finishedSession.exitStatus} elapsed=${elapsed}ms")
+            if (elapsed <= 10_000L || finishedSession.exitStatus != 0) {
+                val captured = try { localTempTrace.readText() } catch (_: Exception) { "[no terminal capture]" }
+                LocalSessionTrace.append(this, "LOCAL EARLY OUTPUT:\n$captured")
+            }
+            localTempTrace.delete()
+        }
         runOnUiThread {
             Toast.makeText(this, R.string.android_shell_exited, Toast.LENGTH_SHORT).show()
             finish()
@@ -152,6 +169,11 @@ class AndroidShellActivity : AppCompatActivity(), TerminalSession.SessionChanged
     }
 
     override fun onDestroy() {
+        if (localFilesystemId >= 0 && session?.isRunning == true) {
+            val captured = try { localTempTrace.readText() } catch (_: Exception) { "[no terminal capture]" }
+            LocalSessionTrace.append(this, "LOCAL destroyed while running; output:\n$captured")
+            localTempTrace.delete()
+        }
         session?.finishIfRunning()
         super.onDestroy()
     }
