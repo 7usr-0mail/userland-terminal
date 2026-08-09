@@ -134,7 +134,9 @@ class ServerService : Service(), CoroutineScope {
         startForeground(NotificationConstructor.serviceNotificationId, notificationManager.buildPersistentServiceNotification())
         if (session.serviceType == ServiceType.Local) {
             session.active = true
+            session.pid = session.id
             updateSession(session)
+            activeSessions[session.pid] = session
             startClient(session)
             return
         }
@@ -198,12 +200,20 @@ class ServerService : Service(), CoroutineScope {
     }
 
     private fun startLocalClient(session: Session) {
+        LocalSessionTrace.append(this, "LOCAL activity launch fs=${session.filesystemId} user=${session.username}")
         val intent = Intent(this, AndroidShellActivity::class.java)
                 .putExtra("localFilesystemId", session.filesystemId)
                 .putExtra("localSessionName", session.name)
                 .putExtra("localUsername", session.username)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        startActivity(intent)
+        try {
+            startActivity(intent)
+        } catch (err: Exception) {
+            LocalSessionTrace.append(this, "LOCAL activity launch failure: ${err.javaClass.simpleName}: ${err.message}")
+            session.active = false
+            updateSession(session)
+            activeSessions.remove(session.pid)
+        }
     }
 
     private fun startSshClient(session: Session) {
