@@ -149,11 +149,15 @@ class AndroidShellLauncher(
             env += "PROOT_DEBUG_LEVEL=-1"
             env += "EXTRA_BINDINGS=-b ${ulaFiles.emulatedUserDir.absolutePath}:/storage/internal"
             env += "OS_VERSION=${System.getProperty("os.version") ?: ""}"
+            val starter = File(rootfs, "support/direct-local-shell.sh")
+            starter.parentFile?.mkdirs()
+            starter.writeText("#!/bin/sh\nexport HOME=/home/" + username +
+                    " USER=" + username + " LOGNAME=" + username +
+                    "\nexec /bin/bash --rcfile /home/" + username + "/.bashrc -i\n")
+            starter.setExecutable(true, false)
             val session = TerminalSession(ulaFiles.busybox.absolutePath, rootfs.absolutePath,
                     arrayOf("busybox", "sh", File(ulaFiles.supportDir, "execInProot.sh").absolutePath,
-                            "/bin/sh", "-c", "export HOME=/home/" + username +
-                            " USER=" + username + " LOGNAME=" + username +
-                            "; exec /bin/bash --rcfile /home/" + username + "/.bashrc -i"), env.toTypedArray(), callback)
+                            "/support/direct-local-shell.sh"), env.toTypedArray(), callback)
             session.updateSize(80, 24)
             session
         } catch (err: Exception) {
